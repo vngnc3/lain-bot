@@ -10,6 +10,25 @@ module.exports = {
                   .setDescription('Your question for Lain')
                   .setRequired(true)),
     async execute(interaction) {
+        // Define the required role name
+        const requiredRoleName = 'WIRED';  // Replace with your specific role name
+
+        // Check if the command user has the required role
+        const hasRequiredRole = interaction.member.roles.cache.some(role => role.name === requiredRoleName);
+        if (!hasRequiredRole) {
+            const rejections = [
+                "We'll speak later.",
+                "I'll talk to you later.",
+                "Not feeling it.",
+                "Who are you?",
+                "I don't recognize you.",
+                "?",
+                "..."
+            ]
+            await interaction.reply(rejections[Math.floor(Math.random()*rejections.length)]);
+            return;
+        }
+
         const dateInUTC7 = new Date(Date.now()).toLocaleString("en-US", { timeZone: "Asia/Bangkok" });
         await interaction.deferReply();
         const userQuery = interaction.options.getString('query');
