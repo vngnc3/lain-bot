@@ -42,8 +42,5 @@ for (const file of eventFiles) {
 	}
 }
 
-// Cooldowns
-client.cooldowns = new Collection();
-
 // Login
 client.login(token);
