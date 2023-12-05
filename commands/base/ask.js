@@ -10,9 +10,11 @@ module.exports = {
                   .setDescription('Your question for Lain')
                   .setRequired(true)),
     async execute(interaction) {
+        const dateInUTC7 = new Date(Date.now()).toLocaleString("en-US", { timeZone: "Asia/Bangkok" });
         await interaction.deferReply();
-
         const userQuery = interaction.options.getString('query');
+        console.log(`${interaction.user.username} asked Lain on ${dateInUTC7}: ${userQuery}`);
+
         let ongoingMessage = '';
         let wordBuffer = '';
 
