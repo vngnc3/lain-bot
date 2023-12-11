@@ -36,32 +36,25 @@ module.exports = {
     await message.channel.sendTyping();
 
     let ongoingMessage = "";
-    let wordBuffer = "";
 
     let replyMessage = await message.reply("...");
 
     const handleData = async (data) => {
-      wordBuffer += data;
+      // Append new data directly to ongoingMessage
+      ongoingMessage += data;
 
-      let spaceIndex = wordBuffer.indexOf(" ");
-      while (spaceIndex !== -1) {
-        ongoingMessage += wordBuffer.substring(0, spaceIndex + 1);
-        wordBuffer = wordBuffer.substring(spaceIndex + 1);
+      // Send typing indicator before editing the message
+      await message.channel.sendTyping();
 
-        // Send typing indicator before editing the message
-        await message.channel.sendTyping();
-
-        await replyMessage.edit(ongoingMessage);
-        spaceIndex = wordBuffer.indexOf(" ");
-      }
+      // Edit the reply with the updated ongoingMessage
+      await replyMessage.edit(ongoingMessage);
     };
 
     try {
       await gptStream(userQuery, handleData);
-      if (wordBuffer) {
+      if (ongoingMessage !== "") {
         // Send typing indicator before sending the final message
-        await message.channel.sendTyping();
-        ongoingMessage += wordBuffer;
+        // await message.channel.sendTyping();
         await replyMessage.edit(ongoingMessage);
       }
     } catch (error) {
