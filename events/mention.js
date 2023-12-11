@@ -44,7 +44,7 @@ module.exports = {
     const handleData = async (data) => {
       if (data.includes(stopCharacter)) {
         // Append data excluding the stop character and mark the stream as complete
-        ongoingMessage += data.replace(stopCharacter, '');
+        // ongoingMessage += data.replace(stopCharacter, ''); // or not
         isStreamComplete = true;
     
         // Edit the reply with the complete message
