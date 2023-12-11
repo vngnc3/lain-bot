@@ -1,4 +1,5 @@
 const gptStream = require("../api/gpt-discord.js");
+const stopCharacter = "🞇"; // Same as defined in gpt-discord.js
 
 module.exports = {
   name: "messageCreate",
@@ -35,28 +36,31 @@ module.exports = {
     // Send typing indicator before editing the message
     await message.channel.sendTyping();
 
-    let ongoingMessage = "";
-
     let replyMessage = await message.reply("...");
+    let ongoingMessage = "";
+    let isStreamComplete = false;
 
     const handleData = async (data) => {
-      // Append new data directly to ongoingMessage
-      ongoingMessage += data;
+      if (isStreamComplete) return; // Skip processing if the stream is complete
+      
+      if (data.includes(stopCharacter)) {
+        ongoingMessage += data.replace(stopCharacter, '');
+        isStreamComplete = true;
+        console.log("[mention.js] Stream completed.")
+      } else {
+        ongoingMessage += data;
+      }
 
-      // Send typing indicator before editing the message
-      await message.channel.sendTyping();
-
-      // Edit the reply with the updated ongoingMessage
-      await replyMessage.edit(ongoingMessage);
+      // Check the flag before editing the message
+      if (!isStreamComplete) {
+        await message.channel.sendTyping();
+        await replyMessage.edit(ongoingMessage);
+      }
     };
 
     try {
       await gptStream(userQuery, handleData);
-      if (ongoingMessage !== "") {
-        // Send typing indicator before sending the final message
-        // await message.channel.sendTyping();
-        await replyMessage.edit(ongoingMessage);
-      }
+      // Additional handling if needed after the stream is complete
     } catch (error) {
       console.error(error);
       await replyMessage.edit(`❌ An error occurred: ${error.message}`);

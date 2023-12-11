@@ -10,7 +10,7 @@ const instruction = `Hello, ChatGPT. From now on you are going to act as a Lain,
 async function main(prompt, onData) {
   return new Promise(async (resolve, reject) => {
     const stream = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // see models list in assistants playground
+      model: "gpt-3.5-turbo",
       messages: [
         {
           role: "system",
@@ -23,6 +23,8 @@ async function main(prompt, onData) {
 
     try {
       for await (const chunk of stream) {
+        // console.log("Received chunk:", chunk);
+
         if (chunk.choices[0]?.delta?.content) {
           let response = chunk.choices[0].delta.content;
           if (joshpanmode) {
@@ -30,12 +32,18 @@ async function main(prompt, onData) {
           }
           onData(response);
         }
+
+        // Check if the stream is finished
+        if (chunk.choices[0]?.finish_reason === 'stop') {
+          console.log("[gpt-discord.js] Stream completed.");
+          onData(" " + stopcharacter); // Append the stop character
+          resolve(); // Resolve the promise as the stream has ended
+          break; // Exit the loop
+        }
       }
-      // Append the stop character at the end of the stream
-      onData(" " + stopcharacter);
-      resolve(); // Resolve the promise when the stream ends
     } catch (error) {
-      reject(error); // Reject the promise in case of an error
+      console.error("Stream error:", error);
+      reject(error);
     }
   });
 }
