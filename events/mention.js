@@ -39,31 +39,41 @@ module.exports = {
     let replyMessage = await message.reply("...");
     let ongoingMessage = "";
     let isStreamComplete = false;
+    let lastTypingTime = 0;
 
     const handleData = async (data) => {
-      if (isStreamComplete) return; // Skip processing if the stream is complete
-      
       if (data.includes(stopCharacter)) {
+        // Append data excluding the stop character and mark the stream as complete
         ongoingMessage += data.replace(stopCharacter, '');
         isStreamComplete = true;
-        console.log("[mention.js] Stream completed.")
+    
+        // Edit the reply with the complete message
+        await replyMessage.edit(ongoingMessage);
+        console.log("[mention.js] Stream completed.");
+        return;
       } else {
         ongoingMessage += data;
       }
-
-      // Check the flag before editing the message
-      if (!isStreamComplete) {
+    
+      const now = Date.now();
+      // Send typing indicator only if more than 10 seconds have passed since the last one
+      if (now - lastTypingTime > 10000 && !isStreamComplete) {
         await message.channel.sendTyping();
+        lastTypingTime = now;
+      }
+    
+      // If the stream is not yet complete, update the message with the current ongoingMessage
+      if (!isStreamComplete) {
         await replyMessage.edit(ongoingMessage);
       }
     };
-
+    
     try {
       await gptStream(userQuery, handleData);
       // Additional handling if needed after the stream is complete
     } catch (error) {
       console.error(error);
       await replyMessage.edit(`❌ An error occurred: ${error.message}`);
-    }
+    }    
   },
 };
