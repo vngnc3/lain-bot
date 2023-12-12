@@ -30,7 +30,16 @@ function checkMessageHistory() {
   }
 }
 
-async function main(prompt, onData) {
+function resetMessageHistory() {
+  // Reset the message history while keeping the first system message
+  messageHistory = [messageHistory[0]];
+}
+
+async function main(prompt, onData, resetHistory = false) {
+  if (resetHistory) {
+    resetMessageHistory();
+  }
+
   // Update the history with the new user prompt
   messageHistory.push({ role: "user", content: prompt });
   checkMessageHistory();

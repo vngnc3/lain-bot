@@ -19,13 +19,28 @@ module.exports = {
     );
     if (!hasRequiredRole) {
       // Optionally, send a reply or log if the user does not have the required role
+      await message.reply("You are not connected to The Wired.");
       console.log(
         `${message.author.username} tried to call Lain but do not have the privilege.`
       );
       return;
     }
+
+    // If all conditions met, store userQuery
+    let userQuery = message.content.replace(/<@!?(\d+)>/, "").trim();
+
+    // If message sender is dev, and is requesting for a reset, set the resetHistory flag to true, otherwise, keep it false.
+    // That and update the userQuery to restart convo.
+    let resetHistory = false;
+    const devUsername = 'xzzy';
+    if (message.content.includes("/forget") && message.author.username === devUsername){
+      resetHistory = true;
+      userQuery = 'Hi there!';
+      console.log(`[mention.js] ${devUsername} requested to wipe message history.`);
+    }
+
+    // Acknowledge message by reacting and logging
     message.react(reactions[Math.floor(Math.random() * reactions.length)]);
-    const userQuery = message.content.replace(/<@!?(\d+)>/, "").trim();
     const dateInUTC7 = new Date(Date.now()).toLocaleString("en-US", {
       timeZone: "Asia/Bangkok",
     });
@@ -89,7 +104,7 @@ module.exports = {
     typingTimer = setTimeout(sendTyping, 10000);
 
     try {
-      await gptStream(userQuery, handleData);
+      await gptStream(userQuery, handleData, resetHistory); // add a conditional argument to reset the messageHistory if resetHistory flag is set to true in the message
     } catch (error) {
       console.error(error);
       clearTimeout(editTimer);
