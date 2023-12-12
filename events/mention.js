@@ -1,5 +1,8 @@
-const gptStream = require("../api/gpt-discord.js");
 const stopCharacter = "🞇"; // Same as defined in gpt-discord.js
+const gptStream = require("../api/gpt-discord.js");
+const helloWorld = require("../api/shims/hello.js");
+const archillect = require("../api/shims/archillect.js");
+const joke = require("../api/shims/joke.js");
 
 module.exports = {
   name: "messageCreate",
@@ -28,6 +31,47 @@ module.exports = {
 
     // If all conditions met, store userQuery
     let userQuery = message.content.replace(/<@!?(\d+)>/, "").trim();
+
+    // Shim to detect API-serviced commands
+    // And then replace any user query with pre-made prompt to process API response
+    // Optionally, use areAllWordsPresent() function to do "dumb smart-check"
+    function areAllWordsPresent(sentence, stringToCheck) {
+      // Convert both strings to lowercase
+      const lowerCaseSentence = sentence.toLowerCase();
+      const lowerCaseString = stringToCheck.toLowerCase();
+  
+      // Split the sentence into words
+      const words = lowerCaseSentence.split(/\s+/);
+  
+      // Check if each word is in the stringToCheck
+      for (const word of words) {
+          if (!lowerCaseString.includes(word)) {
+              return false;
+          }
+      }
+  
+      return true;
+    }
+
+    // shim: hello world
+    if (userQuery.includes("Hello, world!")) {
+      const getHelloWorld = helloWorld();
+      userQuery = getHelloWorld.prompt;
+    }
+
+    // shim: archillect
+    if (userQuery.includes("Archillect") || userQuery.includes("archillect")) {
+      const getArchillect = await archillect(); // Get object from shim module
+      await message.reply(getArchillect.url); // Send the url response directly to message
+      userQuery = getArchillect.prompt // Still, prompt Lain afterwards.
+    }
+
+    // shim: joke
+    if (userQuery.includes("tell me a joke") || userQuery.includes("something funny")) {
+      const getJoke = await joke();
+      await message.reply(getJoke.url);
+      userQuery = getJoke.prompt;
+    }
 
     // If message sender is dev, and is requesting for a reset, set the resetHistory flag to true, otherwise, keep it false.
     // That and update the userQuery to restart convo.
