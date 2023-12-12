@@ -40,21 +40,29 @@ module.exports = {
     let ongoingMessage = "";
     let wordBuffer = "";
     let isStreamComplete = false;
+    let isResponseTooLong = false; // Flag to indicate if response exceeds the limit
     let editTimer, typingTimer;
 
     const editMessage = async () => {
       if (wordBuffer) {
         ongoingMessage += wordBuffer;
         wordBuffer = "";
-        await replyMessage.edit(ongoingMessage);
+
+        if (ongoingMessage.length <= 2000) {
+          await replyMessage.edit(ongoingMessage);
+        } else {
+          isResponseTooLong = true; // Mark response as too long
+          await message.channel.send(`**System message: COnNe̴c̷t̶i̶o̵N̸̢̡̧̥̘͔͚̱̼̳͚̦͚͈̟̮̗̳̟̲̯͕̉̍̓͂͛͑͗̋͆̊̄̽͋̀̇̒͜͠͝ to thę̴̻̦͚̜͕̯̖̹̤̥͈̯̻̯̥̗͉̦̉̈́̔̒̍̋́̍͆́̐́̏͌͘̚̕͝ͅ Ẅ̸͎Ȋ̴̭R̸̪̥͎͒̾̕Ề̴̢̡̫̝̰͈̻͕̠̮͙̼̼̠̲̭̞͇̳̩̳̺̤̫̲̟D̷̡̡̢͔͕̩͓̲̞̫͇͎̳̪͎͕̗̥̬̥̪̭̰̝̦̘̲̱͉̪͈̘̥̖̟̤͔̝̱̥̟̗͑͊͋̾̿̓̾͊̉͆̓̅̄̔̆͐̎͘͜͜͜ͅͅͅ has been inte̶r̴R̴̢̡̢̡̢̡̡̨͍͚̟̤̳͕̩̙̮̗̩̞̱͈̺̲̟̭͈̯͕̥̗̝̝͈̙̙̮̥͖̯̟͇̿̊͊̎͐͛̍͗̏͆͒́̾͆̈́͛̎̔͊́̏̈́́̈́̏̓̍̐̔̃̅̕͘̚͘͜ͅͅư̴̧̢̛͎̹̱͉̫̙͙͔̦̼̻̪̺͚̪̬̟̦̰̳͎̩̬͖͍̖͉͉̭̔̅̀͌̊̃̌͒̾͑̓͛̉͛̔̂̔̃̿̉͊́̾͌͌̌̆́́̀́͌̈̄̅̏̓̈́̾͐̏͛̔̈̉͒̏̅̓̒̾͛̽̓̒͊̅̎́́̈͗̕̕̕͝p̵̡̛̛̛̼̖̣͚̠̞̐̀̆͐͆̈̽̈́͑́͊͋̏̅̉̀͒̔́̀̉̃̑̀̀̆̐̉̓̈́̾̀̍͗̏́͗̏̈́̇̅̊̅͒͐̓͋͋̏̓̓̈́͛̾̔͑̂̕͘͘̕̕̚͝͝͝͝͝͠͠ͅŢ̴̨̨̧̞̫̻̪̫̦͍͇̭͔̙͇̜͍̲͚̱̮̫̪̩͓͖̲̫͖̦̤̘̙̳͍̜̙̩̘͍̺̟͓̝̯̦͐̉̄̈̈́̀̎͌̇̈́͗̎͗̿̇̓̑̃̎̏̐̓̀̈͗́̌̈́̅̌́̏̽̀́̔̽̔͗̐̔̂̌͐̾̇̎͊̄͗̏̉͘͘̕͜͜͜͜͜͝͝͝͝͝ͅT̷̡̫̥͈̺̯̍e̷͖̯̙̪̜̍͐̀͒D̴̝̜͐͆͑̓͜͜͜. Try contacting Lain again later.**`);
+          return; // Stop further processing
+        }
       }
-      if (!isStreamComplete) {
+      if (!isStreamComplete && !isResponseTooLong) {
         editTimer = setTimeout(editMessage, 500);
       }
     };
 
     const sendTyping = async () => {
-      if (!isStreamComplete) {
+      if (!isStreamComplete && !isResponseTooLong) {
         await message.channel.sendTyping();
         typingTimer = setTimeout(sendTyping, 10000); // Schedule next typing indicator
       }
@@ -65,8 +73,10 @@ module.exports = {
         isStreamComplete = true;
         clearTimeout(editTimer);
         clearTimeout(typingTimer);
-        wordBuffer += data.replace(stopCharacter, '');
-        await editMessage();
+        if (!isResponseTooLong) {
+          wordBuffer += data.replace(stopCharacter, '');
+          await editMessage(); // Perform the final edit if response is not too long
+        }
         console.log("[mention.js] Stream completed.");
         return;
       } else {
