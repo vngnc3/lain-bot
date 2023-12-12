@@ -38,42 +38,53 @@ module.exports = {
 
     let replyMessage = await message.reply("...");
     let ongoingMessage = "";
+    let wordBuffer = "";
     let isStreamComplete = false;
-    let lastTypingTime = 0;
+    let editTimer, typingTimer;
+
+    const editMessage = async () => {
+      if (wordBuffer) {
+        ongoingMessage += wordBuffer;
+        wordBuffer = "";
+        await replyMessage.edit(ongoingMessage);
+      }
+      if (!isStreamComplete) {
+        editTimer = setTimeout(editMessage, 500);
+      }
+    };
+
+    const sendTyping = async () => {
+      if (!isStreamComplete) {
+        await message.channel.sendTyping();
+        typingTimer = setTimeout(sendTyping, 10000); // Schedule next typing indicator
+      }
+    };
 
     const handleData = async (data) => {
       if (data.includes(stopCharacter)) {
-        // Append data excluding the stop character and mark the stream as complete
-        // ongoingMessage += data.replace(stopCharacter, ''); // or not
         isStreamComplete = true;
-    
-        // Edit the reply with the complete message
-        await replyMessage.edit(ongoingMessage);
+        clearTimeout(editTimer);
+        clearTimeout(typingTimer);
+        wordBuffer += data.replace(stopCharacter, '');
+        await editMessage();
         console.log("[mention.js] Stream completed.");
         return;
       } else {
-        ongoingMessage += data;
-      }
-    
-      const now = Date.now();
-      // Send typing indicator only if more than 10 seconds have passed since the last one
-      if (now - lastTypingTime > 10000 && !isStreamComplete) {
-        await message.channel.sendTyping();
-        lastTypingTime = now;
-      }
-    
-      // If the stream is not yet complete, update the message with the current ongoingMessage
-      if (!isStreamComplete) {
-        await replyMessage.edit(ongoingMessage);
+        wordBuffer += data;
       }
     };
-    
+
+    // Start the edit and typing processes
+    editTimer = setTimeout(editMessage, 500);
+    typingTimer = setTimeout(sendTyping, 10000);
+
     try {
       await gptStream(userQuery, handleData);
-      // Additional handling if needed after the stream is complete
     } catch (error) {
       console.error(error);
+      clearTimeout(editTimer);
+      clearTimeout(typingTimer);
       await replyMessage.edit(`❌ An error occurred: ${error.message}`);
-    }    
+    }
   },
 };
