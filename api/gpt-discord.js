@@ -2,7 +2,7 @@ require("dotenv").config();
 const OpenAI = require("openai");
 
 const openai = new OpenAI({ 
-  baseUrl: 'https://api.endpoints.anyscale.com/v1',
+  baseURL: 'https://api.endpoints.anyscale.com/v1',
   apiKey: process.env.ANYSCALE_KEY 
 }); // use anyscale API for anyscale branch
 
