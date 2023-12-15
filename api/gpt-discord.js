@@ -1,7 +1,11 @@
 require("dotenv").config();
 const OpenAI = require("openai");
 
-const openai = new OpenAI({ apiKey: process.env.ANYSCALE_KEY }); // use anyscale for anyscale branch
+const openai = new OpenAI({ 
+  baseUrl: 'https://api.endpoints.anyscale.com/v1',
+  apiKey: process.env.ANYSCALE_KEY 
+}); // use anyscale API for anyscale branch
+
 const joshpanmode = true; // write like josh pan, lowercase all response when set to true
 const stopcharacter = "🞇"; // append whitespace and then this character at the very end of the stream.
 const MAX_WORDS_LENGTH = 30000; // maximum total words allowed in messageHistory including system instruction and current user prompt. // mixtral8x7b has 32768 context window
