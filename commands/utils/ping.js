@@ -3,16 +3,16 @@ const { SlashCommandBuilder } = require("discord.js");
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("ping")
-    .setDescription("Replies with Pong!"),
+    .setDescription("Measure bot latency."),
   async execute(interaction) {
     const sent = await interaction.reply({
-      content: "Pinging...",
+      content: "`Pinging...`",
       fetchReply: true,
     });
     interaction.editReply(
-      `Roundtrip latency: ${
+      `**Roundtrip latency: ${
         sent.createdTimestamp - interaction.createdTimestamp
-      }ms`
+      }ms**`
     );
   },
 };

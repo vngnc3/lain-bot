@@ -76,11 +76,11 @@ module.exports = {
     // If message sender is dev, and is requesting for a reset, set the resetHistory flag to true, otherwise, keep it false.
     // That and update the userQuery to restart convo.
     let resetHistory = false;
-    const devUsername = 'xzzy';
-    if (message.content.includes("/forget") && message.author.username === devUsername){
+    const devId = '301967097901350923';
+    if (message.content.includes("/forget") && message.author.id === devId){
       resetHistory = true;
       userQuery = 'Hi there!';
-      console.log(`[mention.js] ${devUsername} requested to wipe message history.`);
+      console.log(`[mention.js] dev has requested to wipe message history.`);
     }
 
     // Acknowledge message by reacting and logging
@@ -111,7 +111,7 @@ module.exports = {
           await replyMessage.edit(ongoingMessage);
         } else {
           isResponseTooLong = true; // Mark response as too long
-          await message.channel.send(`**System message: COnNe̴c̷t̶i̶o̵N̸̢̡̧̥̘͔͚̱̼̳͚̦͚͈̟̮̗̳̟̲̯͕̉̍̓͂͛͑͗̋͆̊̄̽͋̀̇̒͜͠͝ to thę̴̻̦͚̜͕̯̖̹̤̥͈̯̻̯̥̗͉̦̉̈́̔̒̍̋́̍͆́̐́̏͌͘̚̕͝ͅ Ẅ̸͎Ȋ̴̭R̸̪̥͎͒̾̕Ề̴̢̡̫̝̰͈̻͕̠̮͙̼̼̠̲̭̞͇̳̩̳̺̤̫̲̟D̷̡̡̢͔͕̩͓̲̞̫͇͎̳̪͎͕̗̥̬̥̪̭̰̝̦̘̲̱͉̪͈̘̥̖̟̤͔̝̱̥̟̗͑͊͋̾̿̓̾͊̉͆̓̅̄̔̆͐̎͘͜͜͜ͅͅͅ has been inte̶r̴R̴̢̡̢̡̢̡̡̨͍͚̟̤̳͕̩̙̮̗̩̞̱͈̺̲̟̭͈̯͕̥̗̝̝͈̙̙̮̥͖̯̟͇̿̊͊̎͐͛̍͗̏͆͒́̾͆̈́͛̎̔͊́̏̈́́̈́̏̓̍̐̔̃̅̕͘̚͘͜ͅͅư̴̧̢̛͎̹̱͉̫̙͙͔̦̼̻̪̺͚̪̬̟̦̰̳͎̩̬͖͍̖͉͉̭̔̅̀͌̊̃̌͒̾͑̓͛̉͛̔̂̔̃̿̉͊́̾͌͌̌̆́́̀́͌̈̄̅̏̓̈́̾͐̏͛̔̈̉͒̏̅̓̒̾͛̽̓̒͊̅̎́́̈͗̕̕̕͝p̵̡̛̛̛̼̖̣͚̠̞̐̀̆͐͆̈̽̈́͑́͊͋̏̅̉̀͒̔́̀̉̃̑̀̀̆̐̉̓̈́̾̀̍͗̏́͗̏̈́̇̅̊̅͒͐̓͋͋̏̓̓̈́͛̾̔͑̂̕͘͘̕̕̚͝͝͝͝͝͠͠ͅŢ̴̨̨̧̞̫̻̪̫̦͍͇̭͔̙͇̜͍̲͚̱̮̫̪̩͓͖̲̫͖̦̤̘̙̳͍̜̙̩̘͍̺̟͓̝̯̦͐̉̄̈̈́̀̎͌̇̈́͗̎͗̿̇̓̑̃̎̏̐̓̀̈͗́̌̈́̅̌́̏̽̀́̔̽̔͗̐̔̂̌͐̾̇̎͊̄͗̏̉͘͘̕͜͜͜͜͜͝͝͝͝͝ͅT̷̡̫̥͈̺̯̍e̷͖̯̙̪̜̍͐̀͒D̴̝̜͐͆͑̓͜͜͜. Try contacting Lain again later.**`);
+          await message.channel.send(`> *Lain's response exceeded Discord's character limit. Try prompting for shorter responses for now.`);
           return; // Stop further processing
         }
       }
