@@ -1,5 +1,11 @@
-const stopCharacter = "🞇"; // Same as defined in gpt-discord.js
+// gpt-discord
 const gptStream = require("../api/gpt-discord.js");
+const stopCharacter = "🞇"; // Same as defined in gpt-discord.js
+
+// GPT-4-Vision
+const vision = require("../api/vision.js");
+
+// Custom shims
 const helloWorld = require("../api/shims/hello.js");
 const archillect = require("../api/shims/archillect.js");
 const joke = require("../api/shims/joke.js");
@@ -9,13 +15,9 @@ module.exports = {
   async execute(message) {
     const reactions = ["✅", "🆗", "🖤", "🥰", "🫡", "🤔", "🧠", "🐸"];
 
-    // Define the required role name
+    // Limit messages to certain role
     const requiredRoleName = "WIRED"; // Replace with your specific role name
 
-    if (message.content.includes("@here") || message.content.includes("@everyone") || message.type == "REPLY") return false;
-    if (message.author.bot || !message.mentions.has(message.client.user.id))
-      return;
-    
     // Check if the message sender has the required role
     const hasRequiredRole = message.member.roles.cache.some(
       (role) => role.name === requiredRoleName
@@ -29,8 +31,64 @@ module.exports = {
       return;
     }
 
+    // Ignore messages from other type of mentions
+    if (
+      message.content.includes("@here") ||
+      message.content.includes("@everyone") ||
+      message.content.includes(requiredRoleName) ||
+      message.type == "REPLY"
+    )
+      return false;
+
+    // Ignore bots
+    if (message.author.bot || !message.mentions.has(message.client.user.id))
+      return;
+
     // If all conditions met, store userQuery
     let userQuery = message.content.replace(/<@!?(\d+)>/, "").trim();
+
+    // Grok image if attached
+    async function grok(query, url) {
+            console.log(`[mention.js] query: ${query}`);
+            console.log(`[mention.js] imageUrl: ${url}`);
+      
+            // Call the vision function to process the image
+            const grokImage = await vision(url);
+      
+            // Update userQuery with the processed information
+            userQuery = query + " " + grokImage;
+    }
+
+    // Detect image attachment
+    if (message.attachments.size > 0) {
+      // Filter out image attachments
+      const imageAttachments = message.attachments.filter((attachment) =>
+        attachment.contentType.startsWith("image")
+      );
+
+      // Check if there are any image attachments
+      if (imageAttachments.size > 0) {
+        // Get the URL of the first image attachment, store the url
+        imageUrl = imageAttachments.first().url;
+        // Then, grok
+        await grok(userQuery, imageUrl);
+      }
+    }
+
+    // Detect inline image URL
+    const imageregex = /(http|https):\/\/[^\s]*\.(jpg|png|webp|gif)(\?[^]*)?\b/i;
+    const imageUrlMatch = userQuery.match(imageregex);
+
+    if (imageUrlMatch) {
+      // Extract the image URL
+      const imageUrl = imageUrlMatch[0];
+
+      // Remove the image URL from the user query
+      const queryText = userQuery.replace(imageregex, "").trim();
+
+      // Grok
+      await grok(queryText, imageUrl);
+    }
 
     // Shim to detect API-serviced commands
     // And then replace any user query with pre-made prompt to process API response
@@ -39,17 +97,17 @@ module.exports = {
       // Convert both strings to lowercase
       const lowerCaseSentence = sentence.toLowerCase();
       const lowerCaseString = stringToCheck.toLowerCase();
-  
+
       // Split the sentence into words
       const words = lowerCaseSentence.split(/\s+/);
-  
+
       // Check if each word is in the stringToCheck
       for (const word of words) {
-          if (!lowerCaseString.includes(word)) {
-              return false;
-          }
+        if (!lowerCaseString.includes(word)) {
+          return false;
+        }
       }
-  
+
       return true;
     }
 
@@ -63,11 +121,14 @@ module.exports = {
     if (userQuery.includes("Archillect") || userQuery.includes("archillect")) {
       const getArchillect = await archillect(); // Get object from shim module
       await message.reply(getArchillect.url); // Send the url response directly to message
-      userQuery = getArchillect.prompt // Still, prompt Lain afterwards.
+      userQuery = getArchillect.prompt; // Still, prompt Lain afterwards.
     }
 
     // shim: joke
-    if (userQuery.includes("tell me a joke") || userQuery.includes("something funny")) {
+    if (
+      userQuery.includes("tell me a joke") ||
+      userQuery.includes("something funny")
+    ) {
       const getJoke = await joke();
       await message.reply(getJoke.url);
       userQuery = getJoke.prompt;
@@ -76,10 +137,10 @@ module.exports = {
     // If message sender is dev, and is requesting for a reset, set the resetHistory flag to true, otherwise, keep it false.
     // That and update the userQuery to restart convo.
     let resetHistory = false;
-    const devId = '301967097901350923';
-    if (message.content.includes("/forget") && message.author.id === devId){
+    const devId = "301967097901350923";
+    if (message.content.includes("/forget") && message.author.id === devId) {
       resetHistory = true;
-      userQuery = 'Hi there!';
+      userQuery = "Hi there!";
       console.log(`[mention.js] dev has requested to wipe message history.`);
     }
 
@@ -111,7 +172,9 @@ module.exports = {
           await replyMessage.edit(ongoingMessage);
         } else {
           isResponseTooLong = true; // Mark response as too long
-          await message.channel.send(`> *Lain's response exceeded Discord's character limit. Try prompting for shorter responses for now.`);
+          await message.channel.send(
+            `> *Lain's response exceeded Discord's character limit. Try prompting for shorter responses for now.`
+          );
           return; // Stop further processing
         }
       }
@@ -133,7 +196,7 @@ module.exports = {
         clearTimeout(editTimer);
         clearTimeout(typingTimer);
         if (!isResponseTooLong) {
-          wordBuffer += data.replace(stopCharacter, '');
+          wordBuffer += data.replace(stopCharacter, "");
           await editMessage(); // Perform the final edit if response is not too long
         }
         console.log("[mention.js] Stream completed.");

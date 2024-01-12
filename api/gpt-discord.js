@@ -62,7 +62,7 @@ async function main(prompt, onData, resetHistory = false) {
     const stream = await openai.chat.completions.create({
       model: "mistralai/Mixtral-8x7B-Instruct-v0.1",
       messages: messageHistory,
-      temperature: 0.7,
+      temperature: 0.7, // Raise the temperature a bit for variety in response
       stream: true,
     });
 
