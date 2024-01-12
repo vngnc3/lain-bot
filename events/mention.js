@@ -5,6 +5,10 @@ const stopCharacter = "🞇"; // Same as defined in gpt-discord.js
 // GPT-4-Vision
 const vision = require("../api/vision.js");
 
+// RAG
+const rag = require("../api/rag.js");
+const ragFilter = require("../api/rag-filter.js");
+
 // Custom shims
 const helloWorld = require("../api/shims/hello.js");
 const archillect = require("../api/shims/archillect.js");
@@ -49,14 +53,14 @@ module.exports = {
 
     // Grok image if attached
     async function grok(query, url) {
-            console.log(`[mention.js] query: ${query}`);
-            console.log(`[mention.js] imageUrl: ${url}`);
-      
-            // Call the vision function to process the image
-            const grokImage = await vision(url);
-      
-            // Update userQuery with the processed information
-            userQuery = query + " " + grokImage;
+      console.log(`[mention.js] query: ${query}`);
+      console.log(`[mention.js] imageUrl: ${url}`);
+
+      // Call the vision function to process the image
+      const grokImage = await vision(url);
+
+      // Update userQuery with the processed information
+      userQuery = query + " " + grokImage;
     }
 
     // Detect image attachment
@@ -76,7 +80,8 @@ module.exports = {
     }
 
     // Detect inline image URL
-    const imageregex = /(http|https):\/\/[^\s]*\.(jpg|png|webp|gif)(\?[^]*)?\b/i;
+    const imageregex =
+      /(http|https):\/\/[^\s]*\.(jpg|png|webp|gif)(\?[^]*)?\b/i;
     const imageUrlMatch = userQuery.match(imageregex);
 
     if (imageUrlMatch) {
@@ -90,48 +95,15 @@ module.exports = {
       await grok(queryText, imageUrl);
     }
 
-    // Shim to detect API-serviced commands
-    // And then replace any user query with pre-made prompt to process API response
-    // Optionally, use areAllWordsPresent() function to do "dumb smart-check"
-    function areAllWordsPresent(sentence, stringToCheck) {
-      // Convert both strings to lowercase
-      const lowerCaseSentence = sentence.toLowerCase();
-      const lowerCaseString = stringToCheck.toLowerCase();
-
-      // Split the sentence into words
-      const words = lowerCaseSentence.split(/\s+/);
-
-      // Check if each word is in the stringToCheck
-      for (const word of words) {
-        if (!lowerCaseString.includes(word)) {
-          return false;
-        }
+    // RAG
+    // 1. Run userQuery through RAG filter;
+    // 2. If RAG is needed, query the RAG function;
+    // 3. Otherwise, leave the query as is.
+    if (ragFilter(userQuery) === true) {
+      async function queryRag(query) {
+        const ragOutput = await rag(query);
+        userQuery += ragOutput;
       }
-
-      return true;
-    }
-
-    // shim: hello world
-    if (userQuery.includes("Hello, world!")) {
-      const getHelloWorld = helloWorld();
-      userQuery = getHelloWorld.prompt;
-    }
-
-    // shim: archillect
-    if (userQuery.includes("Archillect") || userQuery.includes("archillect")) {
-      const getArchillect = await archillect(); // Get object from shim module
-      await message.reply(getArchillect.url); // Send the url response directly to message
-      userQuery = getArchillect.prompt; // Still, prompt Lain afterwards.
-    }
-
-    // shim: joke
-    if (
-      userQuery.includes("tell me a joke") ||
-      userQuery.includes("something funny")
-    ) {
-      const getJoke = await joke();
-      await message.reply(getJoke.url);
-      userQuery = getJoke.prompt;
     }
 
     // If message sender is dev, and is requesting for a reset, set the resetHistory flag to true, otherwise, keep it false.
