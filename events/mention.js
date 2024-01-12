@@ -22,19 +22,6 @@ module.exports = {
     // Limit messages to certain role
     const requiredRoleName = "WIRED"; // Replace with your specific role name
 
-    // Check if the message sender has the required role
-    const hasRequiredRole = message.member.roles.cache.some(
-      (role) => role.name === requiredRoleName
-    );
-    if (!hasRequiredRole) {
-      // Optionally, send a reply or log if the user does not have the required role
-      await message.reply("You are not connected to The Wired.");
-      console.log(
-        `${message.author.username} tried to call Lain but do not have the privilege.`
-      );
-      return;
-    }
-
     // Ignore messages from other type of mentions
     if (
       message.content.includes("@here") ||
@@ -47,6 +34,19 @@ module.exports = {
     // Ignore bots
     if (message.author.bot || !message.mentions.has(message.client.user.id))
       return;
+
+    // Check if the message sender has the required role
+    const hasRequiredRole = message.member.roles.cache.some(
+      (role) => role.name === requiredRoleName
+    );
+    if (!hasRequiredRole) {
+      // Optionally, send a reply or log if the user does not have the required role
+      await message.reply("You are not connected to The Wired.");
+      console.log(
+        `${message.author.username} tried to call Lain but do not have the privilege.`
+      );
+      return;
+    }
 
     // If all conditions met, store userQuery
     let userQuery = message.content.replace(/<@!?(\d+)>/, "").trim();
