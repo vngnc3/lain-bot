@@ -168,6 +168,7 @@ module.exports = {
           await editMessage(); // Perform the final edit if response is not too long
         }
         console.log("[mention.js] Stream completed.");
+        console.log(`---`);
         return;
       } else {
         wordBuffer += data;
