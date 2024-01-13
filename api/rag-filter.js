@@ -1,4 +1,5 @@
 // Decision agent to filter whether or not RAG is needed given a user query.
+// Not used for now
 
 require("dotenv").config();
 const OpenAI = require("openai");
@@ -140,7 +141,7 @@ async function main(prompt) {
   const result = await openai.chat.completions.create({
     model: "mistralai/Mixtral-8x7B-Instruct-v0.1",
     messages: messageHistory,
-    temperature: 0.2, // Raise the temperature a bit for variety in response
+    temperature: 0.2, // Keep temperatures low for precision
     stream: false,
   });
 

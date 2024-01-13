@@ -7,12 +7,7 @@ const vision = require("../api/vision.js");
 
 // RAG
 const rag = require("../api/rag.js");
-const ragFilter = require("../api/rag-filter.js");
-
-// Custom shims
-const helloWorld = require("../api/shims/hello.js");
-const archillect = require("../api/shims/archillect.js");
-const joke = require("../api/shims/joke.js");
+const ragAgent = require("../api/rag-agent.js");
 
 module.exports = {
   name: "messageCreate",
@@ -96,14 +91,15 @@ module.exports = {
     }
 
     // RAG
-    // 1. Run userQuery through RAG filter;
-    // 2. If RAG is needed, query the RAG function;
-    // 3. Otherwise, leave the query as is.
-    if (ragFilter(userQuery) === true) {
-      async function queryRag(query) {
-        const ragOutput = await rag(query);
-        userQuery += ragOutput;
-      }
+    // 1. If /browse flag is used by the user, run userQuery through ragAgent;
+    // 2. Then, run the returned search query into rag(query) function;
+    // 3. Add system message back in here when the value of userQuery is changed.
+    if (message.content.includes("/browse")) {
+      console.log(`[mention.js] ${message.author.username} used browse.`);
+      const optimizedQuery = await ragAgent(userQuery);
+      const ragResultObject = await rag(optimizedQuery);
+      userQuery = userQuery.replace('/browse', '');
+      userQuery += ` ** SYSTEM MESSAGE || THE RETRIEVAL-AUGMENTED GENERATION (RAG) AGENT HAVE SUMMARIZED A REALTIME WEB SEARCH BASED ON THE USER'S MESSAGE! HERE IS THE RESULT PROVIDED BY THE RAG AGENT: ${ragResultObject.answer} || IMPORTANT: Remember to add these links in your response as individual markdown-formatted link: ${ragResultObject.sourceUrls} || END OF SYSTEM MESSAGE **`;
     }
 
     // If message sender is dev, and is requesting for a reset, set the resetHistory flag to true, otherwise, keep it false.
