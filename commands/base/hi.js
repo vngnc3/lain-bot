@@ -14,7 +14,7 @@ module.exports = {
         "hiiiiiiiiii",
         "👋"
     ]
-    const sent = await interaction.reply({
+    await interaction.reply({
       content: variants[Math.floor(Math.random()*variants.length)],
       fetchReply: true,
     });

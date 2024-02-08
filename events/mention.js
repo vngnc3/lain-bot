@@ -5,10 +5,9 @@ const stopCharacter = "🞇"; // Same as defined in gpt-discord.js
 // GPT-4-Vision
 const vision = require("../api/vision.js");
 
-// Custom shims
-const helloWorld = require("../api/shims/hello.js");
-const archillect = require("../api/shims/archillect.js");
-const joke = require("../api/shims/joke.js");
+// RAG
+const rag = require("../api/rag.js");
+const ragAgent = require("../api/rag-agent.js");
 
 module.exports = {
   name: "messageCreate",
@@ -17,19 +16,6 @@ module.exports = {
 
     // Limit messages to certain role
     const requiredRoleName = "WIRED"; // Replace with your specific role name
-
-    // Check if the message sender has the required role
-    const hasRequiredRole = message.member.roles.cache.some(
-      (role) => role.name === requiredRoleName
-    );
-    if (!hasRequiredRole) {
-      // Optionally, send a reply or log if the user does not have the required role
-      await message.reply("You are not connected to The Wired.");
-      console.log(
-        `${message.author.username} tried to call Lain but do not have the privilege.`
-      );
-      return;
-    }
 
     // Ignore messages from other type of mentions
     if (
@@ -44,19 +30,32 @@ module.exports = {
     if (message.author.bot || !message.mentions.has(message.client.user.id))
       return;
 
+    // Check if the message sender has the required role
+    const hasRequiredRole = message.member.roles.cache.some(
+      (role) => role.name === requiredRoleName
+    );
+    if (!hasRequiredRole) {
+      // Optionally, send a reply or log if the user does not have the required role
+      await message.reply("You are not connected to The Wired.");
+      console.log(
+        `${message.author.username} tried to call Lain but do not have the privilege.`
+      );
+      return;
+    }
+
     // If all conditions met, store userQuery
     let userQuery = message.content.replace(/<@!?(\d+)>/, "").trim();
 
     // Grok image if attached
     async function grok(query, url) {
-            console.log(`[mention.js] query: ${query}`);
-            console.log(`[mention.js] imageUrl: ${url}`);
-      
-            // Call the vision function to process the image
-            const grokImage = await vision(url);
-      
-            // Update userQuery with the processed information
-            userQuery = query + " " + grokImage;
+      console.log(`[mention.js] query: ${query}`);
+      console.log(`[mention.js] imageUrl: ${url}`);
+
+      // Call the vision function to process the image
+      const grokImage = await vision(url);
+
+      // Update userQuery with the processed information
+      userQuery = query + " " + grokImage;
     }
 
     // Detect image attachment
@@ -76,7 +75,8 @@ module.exports = {
     }
 
     // Detect inline image URL
-    const imageregex = /(http|https):\/\/[^\s]*\.(jpg|png|webp|gif)(\?[^]*)?\b/i;
+    const imageregex =
+      /(http|https):\/\/[^\s]*\.(jpg|png|webp|gif)(\?[^]*)?\b/i;
     const imageUrlMatch = userQuery.match(imageregex);
 
     if (imageUrlMatch) {
@@ -90,48 +90,16 @@ module.exports = {
       await grok(queryText, imageUrl);
     }
 
-    // Shim to detect API-serviced commands
-    // And then replace any user query with pre-made prompt to process API response
-    // Optionally, use areAllWordsPresent() function to do "dumb smart-check"
-    function areAllWordsPresent(sentence, stringToCheck) {
-      // Convert both strings to lowercase
-      const lowerCaseSentence = sentence.toLowerCase();
-      const lowerCaseString = stringToCheck.toLowerCase();
-
-      // Split the sentence into words
-      const words = lowerCaseSentence.split(/\s+/);
-
-      // Check if each word is in the stringToCheck
-      for (const word of words) {
-        if (!lowerCaseString.includes(word)) {
-          return false;
-        }
-      }
-
-      return true;
-    }
-
-    // shim: hello world
-    if (userQuery.includes("Hello, world!")) {
-      const getHelloWorld = helloWorld();
-      userQuery = getHelloWorld.prompt;
-    }
-
-    // shim: archillect
-    if (userQuery.includes("Archillect") || userQuery.includes("archillect")) {
-      const getArchillect = await archillect(); // Get object from shim module
-      await message.reply(getArchillect.url); // Send the url response directly to message
-      userQuery = getArchillect.prompt; // Still, prompt Lain afterwards.
-    }
-
-    // shim: joke
-    if (
-      userQuery.includes("tell me a joke") ||
-      userQuery.includes("something funny")
-    ) {
-      const getJoke = await joke();
-      await message.reply(getJoke.url);
-      userQuery = getJoke.prompt;
+    // RAG
+    // 1. If /browse flag is used by the user, run userQuery through ragAgent;
+    // 2. Then, run the returned search query into rag(query) function;
+    // 3. Add system message back in here when the value of userQuery is changed.
+    if (message.content.includes("/browse")) {
+      console.log(`[mention.js] ${message.author.username} used browse.`);
+      const optimizedQuery = await ragAgent(userQuery);
+      const ragResultObject = await rag(optimizedQuery);
+      userQuery = userQuery.replace('/browse', '');
+      userQuery += ` ** SYSTEM MESSAGE || THE RETRIEVAL-AUGMENTED GENERATION (RAG) AGENT HAVE SUMMARIZED A REALTIME WEB SEARCH BASED ON THE USER'S MESSAGE! HERE IS THE RESULT PROVIDED BY THE RAG AGENT: ${ragResultObject.answer} || IMPORTANT: Remember to add these links in your response as individual markdown-formatted link: ${ragResultObject.sourceUrls} || END OF SYSTEM MESSAGE **`;
     }
 
     // If message sender is dev, and is requesting for a reset, set the resetHistory flag to true, otherwise, keep it false.
@@ -200,6 +168,7 @@ module.exports = {
           await editMessage(); // Perform the final edit if response is not too long
         }
         console.log("[mention.js] Stream completed.");
+        console.log(`---`);
         return;
       } else {
         wordBuffer += data;
