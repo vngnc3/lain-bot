@@ -3,8 +3,7 @@ const rag = require("../api/rag.js");
 
 const openai = new OpenAI({
   baseURL: "https://api.endpoints.anyscale.com/v1",
-  // apiKey: process.env.ANYSCALE_KEY,
-  apiKey: "esecret_76iw1wpqsglmmzvjjsa7lmdht2", // DO NOT COMMIT!!!
+  apiKey: process.env.ANYSCALE_KEY,
 });
 
 const instruction = `You are an AI agent tasked to rewrite the user message into the most direct and most concise query to a search engine. Your objective is to understand the user's intent and rewrite it into the perfect query for use in a search engine. Never add notes, opinion, or any other information that the user did not provide you in the first place.`;
