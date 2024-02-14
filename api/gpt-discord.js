@@ -59,6 +59,8 @@ function resetMessageHistory() {
   messageHistory = [messageHistory[0]];
 }
 
+let streamTimeout;
+
 async function main(prompt, onData, resetHistory = false) {
   if (resetHistory) {
     resetMessageHistory();
@@ -75,6 +77,8 @@ async function main(prompt, onData, resetHistory = false) {
 
     try {
       for await (const chunk of stream) {
+        clearTimeout(streamTimeout); // Clear the previous timeout whenever new data is received
+
         if (chunk.choices[0]?.delta?.content) {
           let chunkContent = chunk.choices[0].delta.content;
           if (joshpanmode) {
@@ -87,20 +91,23 @@ async function main(prompt, onData, resetHistory = false) {
         if (chunk.choices[0]?.finish_reason === "stop") {
           console.log("[gpt-discord.js] Stream completed.");
           onData(" " + stopcharacter);
-
-          // Push the complete response to the message history
-          messageHistory.push({ role: "assistant", content: responseBuffer });
-          checkMessageHistory();
-
-          resolve();
-          break;
         }
+
+        // Set a timeout that will mark the stream as complete if no new data is received within 5 seconds
+        streamTimeout = setTimeout(() => {
+          console.log("[gpt-discord.js] Stream timeout.");
+          onData(" " + stopcharacter);
+        }, 5000);
       }
     } catch (error) {
       console.error("Stream error:", error);
       reject(error);
     } finally {
       // Ensure the Promise is resolved when the stream ends, regardless of finish_reason
+      // Push the complete response to the message history
+      messageHistory.push({ role: "assistant", content: responseBuffer });
+      checkMessageHistory();
+
       resolve();
     }
 
