@@ -2,13 +2,9 @@ require("dotenv").config();
 
 const OpenAI = require("openai");
 const openai = new OpenAI({
-  baseURL: "https://api.endpoints.anyscale.com/v1",
-  apiKey: process.env.ANYSCALE_KEY,
+  baseURL: "https://api.together.xyz/v1",
+  apiKey: process.env.TOGETHER_KEY,
 });
-
-const joshpanmode = false; // write like josh pan, lowercase all response when set to true
-const stopcharacter = "🞇"; // append whitespace and then this character at the very end of the stream.
-const MAX_WORDS_LENGTH = 31000; // maximum total words allowed in messageHistory including system instruction and current user prompt. // mixtral8x7b has 32768 context window
 
 // Initialize a message history array
 const instruction = require("./instruction");
@@ -22,6 +18,21 @@ let systemMessage = [
 
 let messageHistory = systemMessage.concat(examples);
 
+// Configure openai
+const openaiConfig = {
+  model: "teknium/OpenHermes-2p5-Mistral-7B",
+  max_tokens: 512,
+  messages: messageHistory,
+  temperature: 0.79, // Raise the temperature a bit for variety in response
+  presence_penalty: 0.99,
+  stream: true,
+};
+
+const joshpanmode = false; // write like josh pan, lowercase all response when set to true
+const stopcharacter = "🞇"; // append whitespace and then this character at the very end of the stream.
+const MAX_WORDS_LENGTH = 31000; // maximum total words allowed in messageHistory including system instruction and current user prompt. // mixtral8x7b has 32768 context window
+
+// Message history management
 function wordCount(str) {
   return str.split(" ").filter(function (n) {
     return n != "";
@@ -60,14 +71,7 @@ async function main(prompt, onData, resetHistory = false) {
   let responseBuffer = ""; // Buffer to store response chunks
 
   return new Promise(async (resolve, reject) => {
-    const stream = await openai.chat.completions.create({
-      model: "mistralai/Mixtral-8x7B-Instruct-v0.1",
-      max_tokens: 512,
-      messages: messageHistory,
-      temperature: 0.79, // Raise the temperature a bit for variety in response
-      presence_penalty: 0.99,
-      stream: true,
-    });
+    const stream = await openai.chat.completions.create(openaiConfig);
 
     try {
       for await (const chunk of stream) {
