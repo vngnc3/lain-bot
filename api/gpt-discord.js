@@ -30,7 +30,10 @@ const openaiConfig = {
 
 const joshpanmode = false; // write like josh pan, lowercase all response when set to true
 const stopcharacter = "🞇"; // append whitespace and then this character at the very end of the stream.
-const MAX_WORDS_LENGTH = 31000; // maximum total words allowed in messageHistory including system instruction and current user prompt. // mixtral8x7b has 32768 context window
+const MAX_WORDS_LENGTH = 8000;
+// maximum total words allowed in messageHistory including system instruction and current user prompt.
+// mixtral8x7b has 32768 context window
+// mistral7b has 8K context window
 
 // Message history management
 function wordCount(str) {
