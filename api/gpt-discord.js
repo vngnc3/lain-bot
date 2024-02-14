@@ -21,7 +21,7 @@ let messageHistory = systemMessage.concat(examples);
 // Configure openai
 const openaiConfig = {
   model: "teknium/OpenHermes-2p5-Mistral-7B",
-  max_tokens: 512,
+  max_tokens: 2048,
   messages: messageHistory,
   temperature: 0.79, // Raise the temperature a bit for variety in response
   presence_penalty: 0.99,
@@ -99,6 +99,9 @@ async function main(prompt, onData, resetHistory = false) {
     } catch (error) {
       console.error("Stream error:", error);
       reject(error);
+    } finally {
+      // Ensure the Promise is resolved when the stream ends, regardless of finish_reason
+      resolve();
     }
 
     // Log at the end of cycle

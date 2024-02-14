@@ -161,7 +161,7 @@ module.exports = {
         }
       }
       if (!isStreamComplete && !isResponseTooLong) {
-        editTimer = setTimeout(editMessage, 500);
+        editTimer = setTimeout(editMessage, 50); // editMessage loop in milliseconds
       }
     };
 
