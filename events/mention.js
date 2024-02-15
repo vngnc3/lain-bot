@@ -1,6 +1,6 @@
 // gpt-discord
 const gptStream = require("../api/gpt-discord.js");
-const stopCharacter = "🞇"; // Same as defined in gpt-discord.js
+const stopCharacter = "▵"; // Same as defined in gpt-discord.js
 
 // GPT-4-Vision
 const vision = require("../api/vision.js");

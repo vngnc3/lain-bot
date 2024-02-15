@@ -4,65 +4,75 @@ const OpenAI = require("openai");
 const openai = new OpenAI({
   baseURL: "https://api.together.xyz/v1",
   apiKey: process.env.TOGETHER_KEY,
-});
+})
+const joshpanmode = false; // respond in all lowercase
+const stopcharacter = "▵"; // used to signal end of stream to mention.js
 
-// Initialize a message history array
+// Initialize/inject a message history array
 const instruction = require("./instruction");
 const examples = require("./examples");
-let systemMessage = [
-  {
-    role: "system",
-    content: instruction,
-  },
-];
+const chatInjection = instruction.concat(examples);
 
-let messageHistory = systemMessage.concat(examples);
+let messageHistory = chatInjection;
 
-// Configure openai
+// Configure model
 const openaiConfig = {
   model: "teknium/OpenHermes-2p5-Mistral-7B",
-  max_tokens: 2048,
   messages: messageHistory,
   temperature: 0.79, // Raise the temperature a bit for variety in response
   presence_penalty: 0.99,
   stream: true,
 };
 
-const joshpanmode = false; // write like josh pan, lowercase all response when set to true
-const stopcharacter = "🞇"; // append whitespace and then this character at the very end of the stream.
-const MAX_WORDS_LENGTH = 8000;
-// maximum total words allowed in messageHistory including system instruction and current user prompt.
-// mixtral8x7b has 32768 context window
-// mistral7b has 8K context window
-
-// Message history management
-function wordCount(str) {
-  return str.split(" ").filter(function (n) {
-    return n != "";
-  }).length;
+// Approximate token from character count
+function approximateTokens(totalChars) {
+  // '#tokens <? #characters * (1/e) + safety_margin'
+  const safetyMargin = 100;
+  const e = 2.718281828459045;
+  const tokens = totalChars * (1/e) + safetyMargin;
+  return tokens;
+}
+function approximateMaxChars(maxTokens) {
+  const safetyMargin = 100;
+  const e = 2.718281828459045;
+  const maxChars = (maxTokens - safetyMargin) * e;
+  return maxChars;
 }
 
+// Message history & token management
+const contextWindow = 8192; // mistral-7b has 8K context window
+
 function checkMessageHistory() {
-  let totalWords = messageHistory.reduce(
-    (acc, message) => acc + wordCount(message.content),
+  console.log("[gpt-discord.js] Checking message history...");
+
+  let totalChars = messageHistory.reduce(
+    (acc, message) => acc + message.content.length,
     0
   );
 
-  while (totalWords > MAX_WORDS_LENGTH && messageHistory.length > 2) {
-    messageHistory.splice(1, 1); // Remove the oldest user/assistant message
-    totalWords = messageHistory.reduce(
-      (acc, message) => acc + wordCount(message.content),
+  console.log(
+    `[gpt-discord.js] Approximated tokens : ${approximateTokens(totalChars)}`
+  );
+
+  const maxChars = approximateMaxChars(contextWindow);
+
+  if (totalChars > maxChars) {
+    console.log("[gpt-discord.js] Context window is too large, removing oldest message.");
+    messageHistory.splice(chatInjection.length, 1); // Remove the oldest user/assistant message after chatInjection messages
+    totalChars = messageHistory.reduce(
+      (acc, message) => acc + message.content.length,
       0
     );
   }
 }
 
 function resetMessageHistory() {
-  // Reset the message history while keeping the first system message
-  messageHistory = [messageHistory[0]];
+  // Reset the message history while keeping the chatInjection messages
+  messageHistory = chatInjection;
 }
 
 let streamTimeout;
+const streamLimitMs = 5000;
 
 async function main(prompt, onData, resetHistory = false) {
   if (resetHistory) {
@@ -96,11 +106,11 @@ async function main(prompt, onData, resetHistory = false) {
           onData(" " + stopcharacter);
         }
 
-        // Set a timeout that will mark the stream as complete if no new data is received within 5 seconds
+        // Set a timeout that will mark the stream as complete if no new data is received within x seconds
         streamTimeout = setTimeout(() => {
           console.log("[gpt-discord.js] Stream timeout.");
           onData(" " + stopcharacter);
-        }, 5000);
+        }, streamLimitMs);
       }
     } catch (error) {
       console.error("Stream error:", error);
@@ -117,12 +127,6 @@ async function main(prompt, onData, resetHistory = false) {
     // Log at the end of cycle
     console.log(
       `[gpt-discord.js] Messages in context : ${messageHistory.length}`
-    );
-    console.log(
-      `[gpt-discord.js] Words in context    : ${messageHistory.reduce(
-        (acc, message) => acc + wordCount(message.content),
-        0
-      )}`
     );
   });
 }
