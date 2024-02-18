@@ -156,7 +156,7 @@ module.exports = {
         } else {
           isResponseTooLong = true; // Mark response as too long
           await message.channel.send(
-            `> ⚠️ *Lain's response exceeded Discord's character limit. Try prompting for shorter responses for now.*`
+            `\`\`\`⚠️ Lain's response exceeded Discord's character limit. Try prompting for shorter responses for now.\`\`\``
           );
           return; // Stop further processing
         }
