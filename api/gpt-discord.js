@@ -85,7 +85,23 @@ function manageMessageHistoryAndTokens(newMessage) {
 
 function resetMessageHistory() {
   // Reset the message history while keeping the chatInjection messages
-  messageHistory = chatInjection;
+  messageHistory = [...chatInjection];
+}
+
+// Inactivity reset configuration
+let inactivityTimer;
+const inactivityLimitMs = 1800000; // 30 minutes inactivity timeout
+
+// Function to reset message history after X minutes of inactivity
+function resetAfterInactivity() {
+  // Clear any existing inactivity timer to restart the countdown
+  clearTimeout(inactivityTimer);
+
+  // Set a new timer
+  inactivityTimer = setTimeout(() => {
+    console.log('[gpt-discord.js] Inactivity limit reached. Resetting message history.');
+    resetMessageHistory();
+  }, inactivityLimitMs);
 }
 
 let streamTimeout;
@@ -94,6 +110,9 @@ const streamLimitMs = 5000;
 async function main(prompt, onData, resetHistory = false) {
   if (resetHistory) {
     resetMessageHistory();
+  } else {
+    // Reset message history after inactivity if not explicitly resetting
+    resetAfterInactivity();
   }
 
   // Refactored to use the new message management function
