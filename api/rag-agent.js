@@ -1,12 +1,10 @@
 const OpenAI = require("openai");
 const rag = require("../api/rag.js");
 
-const openai = new OpenAI({
-  baseURL: "https://api.endpoints.anyscale.com/v1",
-  apiKey: process.env.ANYSCALE_KEY,
-});
+// Use GPT-4 for best result
+const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY });
 
-const instruction = `You are an AI agent tasked to rewrite the user message into the most direct and most concise query to a search engine. Your objective is to understand the user's intent and rewrite it into the perfect query for use in a search engine. Never add notes, opinion, or any other information that the user did not provide you in the first place.`;
+const instruction = `Your task is to rewrite the user message into the most direct and most concise query to a search engine. Your objective is to understand the user's intent and rewrite it into the perfect query for use in a search engine. Never add notes, opinion, or any other information that the user did not provide you in the first place.`;
 
 let messageHistory = [
   {
@@ -45,7 +43,7 @@ let messageHistory = [
   },
   {
     role: "assistant",
-    content: "best DDR5 RAM in the market, january 2024",
+    content: "best DDR5 RAM in the market",
   },
   {
     role: "user",
@@ -78,9 +76,9 @@ async function main(prompt) {
   messageHistory.push({ role: "user", content: prompt });
 
   const result = await openai.chat.completions.create({
-    model: "mistralai/Mixtral-8x7B-Instruct-v0.1",
+    model: "gpt-4-0125-preview", // Use GPT-4 for best result
     messages: messageHistory,
-    temperature: 0.2, // Keep temperatures low for precision
+    temperature: 0.17, // Keep temperatures low for precision
     seed: 1111, // Manually setting seed for reproducible output
     stream: false,
   });

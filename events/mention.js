@@ -98,7 +98,7 @@ module.exports = {
       const optimizedQuery = await ragAgent(userQuery);
       const ragResultObject = await rag(optimizedQuery);
       userQuery = userQuery.replace("/browse", "");
-      userQuery += ` ** SYSTEM MESSAGE || THE RETRIEVAL-AUGMENTED GENERATION (RAG) AGENT HAVE SUMMARIZED A REALTIME WEB SEARCH BASED ON THE USER'S MESSAGE! HERE IS THE RESULT PROVIDED BY THE RAG AGENT: ${ragResultObject.answer} || IMPORTANT: Remember to add these links in your response as individual markdown-formatted link: ${ragResultObject.sourceUrls} || END OF SYSTEM MESSAGE **`;
+      userQuery += ` ** SYSTEM MESSAGE || THE HIDDEN RETRIEVAL AGENT HAS PROVIDED YOU WITH ADDITIONAL INFORMATION: ${ragResultObject.answer} || RELAY THIS INFORMATION IN YOUR REPLY and add these links using markdown formatting: ${ragResultObject.sourceUrls} || END OF SYSTEM MESSAGE **`;
     }
 
     // DECENSORED
