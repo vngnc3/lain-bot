@@ -17,7 +17,7 @@ let messageHistory = [...chatInjection];
 
 // Configure model
 const openaiConfig = {
-  model: "teknium/OpenHermes-2p5-Mistral-7B",
+  model: "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
   // messages added with every user interaction or new assistant response
   temperature: 0.79, // Raise the temperature a bit for variety in response
   presence_penalty: 0.99,
@@ -41,7 +41,7 @@ function approximateMaxChars(maxTokens) {
 }
 
 // Message history & token management
-const contextWindow = 8192; // mistral-7b has 8K context window
+const contextWindow = 32768; // mistral-7b has 8K context window // mixtral-8x7b has 32K context window
 
 function manageMessageHistoryAndTokens(newMessage) {
   if (newMessage) {
