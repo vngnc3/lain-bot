@@ -150,19 +150,22 @@ module.exports = {
       if (wordBuffer) {
         ongoingMessage += wordBuffer;
         wordBuffer = "";
-
+  
         if (ongoingMessage.length <= 2000) {
           await replyMessage.edit(ongoingMessage);
         } else {
-          isResponseTooLong = true; // Mark response as too long
-          await message.channel.send(
-            `\`\`\`⚠️ Lain's response exceeded Discord's character limit. Try prompting for shorter responses for now.\`\`\``
-          );
-          return; // Stop further processing
+          // If ongoingMessage exceeds 2000 characters, split it
+          const remainingText = ongoingMessage.slice(2000);
+          ongoingMessage = ongoingMessage.substring(0, 2000);
+          await replyMessage.edit(ongoingMessage); // Edit the current message with the first 2000 characters
+  
+          // Send a new message with the remaining text and continue editing this new message
+          replyMessage = await message.channel.send(remainingText.substring(0, 2000));
+          ongoingMessage = remainingText.substring(2000); // Prepare ongoingMessage for further text
         }
       }
-      if (!isStreamComplete && !isResponseTooLong) {
-        editTimer = setTimeout(editMessage, 50); // editMessage loop in milliseconds
+      if (!isStreamComplete) {
+        editTimer = setTimeout(editMessage, 50); // Continue the editMessage loop
       }
     };
 
