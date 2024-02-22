@@ -2,75 +2,134 @@ require("dotenv").config();
 
 const OpenAI = require("openai");
 const openai = new OpenAI({
-  baseURL: "https://api.endpoints.anyscale.com/v1",
-  apiKey: process.env.ANYSCALE_KEY,
+  baseURL: "https://api.together.xyz/v1",
+  apiKey: process.env.TOGETHER_KEY,
 });
+const joshpanmode = false; // respond in all lowercase
+const stopcharacter = "▵"; // used to signal end of stream to mention.js
 
-const joshpanmode = false; // write like josh pan, lowercase all response when set to true
-const stopcharacter = "🞇"; // append whitespace and then this character at the very end of the stream.
-const MAX_WORDS_LENGTH = 31000; // maximum total words allowed in messageHistory including system instruction and current user prompt. // mixtral8x7b has 32768 context window
-
-// Initialize a message history array
+// Initialize/inject a message history array
 const instruction = require("./instruction");
 const examples = require("./examples");
-let systemMessage = [
-  {
-    role: "system",
-    content: instruction,
-  },
-];
+const chatInjection = instruction.concat(examples);
 
-let messageHistory = systemMessage.concat(examples);
+let messageHistory = [...chatInjection];
 
-function wordCount(str) {
-  return str.split(" ").filter(function (n) {
-    return n != "";
-  }).length;
+// Configure model
+const openaiConfig = {
+  model: "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+  // messages added with every user interaction or new assistant response
+  temperature: 0.79, // Raise the temperature a bit for variety in response
+  presence_penalty: 0.99,
+  stream: true,
+};
+
+// Approximate token from character count
+function approximateTokens(totalChars) {
+  // '#tokens <? #characters * (1/e) + safety_margin'
+  const safetyMargin = 100;
+  const e = 2.718281828459045;
+  const tokens = totalChars * (1 / e) + safetyMargin;
+  const roundedUpTokens = Math.ceil(tokens);
+  return roundedUpTokens;
+}
+function approximateMaxChars(maxTokens) {
+  const safetyMargin = 100;
+  const e = 2.718281828459045;
+  const maxChars = (maxTokens - safetyMargin) * e;
+  return maxChars;
 }
 
-function checkMessageHistory() {
-  let totalWords = messageHistory.reduce(
-    (acc, message) => acc + wordCount(message.content),
-    0
-  );
+// Message history & token management
+const contextWindow = 32768; // mistral-7b has 8K context window // mixtral-8x7b has 32K context window
 
-  while (totalWords > MAX_WORDS_LENGTH && messageHistory.length > 2) {
-    messageHistory.splice(1, 1); // Remove the oldest user/assistant message
-    totalWords = messageHistory.reduce(
-      (acc, message) => acc + wordCount(message.content),
-      0
-    );
+function manageMessageHistoryAndTokens(newMessage) {
+  if (newMessage) {
+    messageHistory.push(newMessage);
+  }
+
+  let totalChars;
+  let totalTokens;
+
+  function updateTokens() {
+    totalChars = messageHistory.reduce((acc, message) => acc + message.content.length, 0);
+    totalTokens = approximateTokens(totalChars);
+  }
+
+  updateTokens();
+
+  const bufferTokens = 500; // Buffer for model's response
+  const maxTokensWithBuffer = contextWindow - bufferTokens;
+
+  while (totalTokens > maxTokensWithBuffer && messageHistory.length > chatInjection.length) {
+    console.log('[gpt-discord.js] Attempting to remove oldest message.');
+    // Remove the oldest message after chatInjection messages
+    let removedMessage = messageHistory.splice(chatInjection.length, 1);
+    // console.log(`Removed message: ${removedMessage[0].content}`); // Verbose message removal
+    console.log('[gpt-discord.js] 1 message removed.');
+    updateTokens(); // Recalculate total tokens
+
+    // Safety check - break out of the loop if no messages are being removed
+    if (totalTokens === approximateTokens(messageHistory.reduce((acc, message) => acc + message.content.length, 0))) {
+      // console.error('Error: Unable to reduce token count. Exiting loop.');
+      break;
+    }
+  }
+
+  if (totalTokens <= maxTokensWithBuffer) {
+    console.log(`[gpt-discord.js] OK: Total tokens ${Number(totalTokens)}/${Number(contextWindow)}.`);
+  } else {
+    console.error(`[gpt-discord.js] Error: messageHistory exceeds context window (${totalTokens} tokens).`);
   }
 }
 
 function resetMessageHistory() {
-  // Reset the message history while keeping the first system message
-  messageHistory = [messageHistory[0]];
+  // Reset the message history while keeping the chatInjection messages
+  messageHistory = [...chatInjection];
 }
+
+// Inactivity reset configuration
+let inactivityTimer;
+const inactivityLimitMs = 1800000; // 30 minutes inactivity timeout
+
+// Function to reset message history after X minutes of inactivity
+function resetAfterInactivity() {
+  // Clear any existing inactivity timer to restart the countdown
+  clearTimeout(inactivityTimer);
+
+  // Set a new timer
+  inactivityTimer = setTimeout(() => {
+    console.log('[gpt-discord.js] Inactivity limit reached. Resetting message history.');
+    resetMessageHistory();
+  }, inactivityLimitMs);
+}
+
+let streamTimeout;
+const streamLimitMs = 5000;
 
 async function main(prompt, onData, resetHistory = false) {
   if (resetHistory) {
     resetMessageHistory();
+  } else {
+    // Reset message history after inactivity if not explicitly resetting
+    resetAfterInactivity();
   }
 
-  // Update the history with the new user prompt
-  messageHistory.push({ role: "user", content: prompt });
-  checkMessageHistory();
+  // Refactored to use the new message management function
+  manageMessageHistoryAndTokens({ role: "user", content: prompt });
 
   let responseBuffer = ""; // Buffer to store response chunks
 
   return new Promise(async (resolve, reject) => {
-    const stream = await openai.chat.completions.create({
-      model: "mistralai/Mixtral-8x7B-Instruct-v0.1",
-      max_tokens: 512,
-      messages: messageHistory,
-      temperature: 0.79, // Raise the temperature a bit for variety in response
-      presence_penalty: 0.99,
-      stream: true,
-    });
+    // Update openaiConfig with current message history before creating the stream
+    openaiConfig.messages = messageHistory;
+
+    const stream = await openai.chat.completions.create(openaiConfig);
 
     try {
       for await (const chunk of stream) {
+        clearTimeout(streamTimeout); // Clear the previous timeout whenever new data is received
+
         if (chunk.choices[0]?.delta?.content) {
           let chunkContent = chunk.choices[0].delta.content;
           if (joshpanmode) {
@@ -83,29 +142,31 @@ async function main(prompt, onData, resetHistory = false) {
         if (chunk.choices[0]?.finish_reason === "stop") {
           console.log("[gpt-discord.js] Stream completed.");
           onData(" " + stopcharacter);
-
-          // Push the complete response to the message history
-          messageHistory.push({ role: "assistant", content: responseBuffer });
-          checkMessageHistory();
-
-          resolve();
-          break;
         }
+
+        // Set a timeout that will mark the stream as complete if no new data is received within x seconds
+        streamTimeout = setTimeout(() => {
+          // console.log("[gpt-discord.js] Stream timeout.");
+          onData(" " + stopcharacter);
+        }, streamLimitMs);
       }
     } catch (error) {
       console.error("Stream error:", error);
       reject(error);
+    } finally {
+      // Ensure the Promise is resolved when the stream ends, regardless of finish_reason
+      // Push the complete response to the message history
+      manageMessageHistoryAndTokens({
+        role: "assistant",
+        content: responseBuffer,
+      });
+
+      resolve();
     }
 
     // Log at the end of cycle
     console.log(
       `[gpt-discord.js] Messages in context : ${messageHistory.length}`
-    );
-    console.log(
-      `[gpt-discord.js] Words in context    : ${messageHistory.reduce(
-        (acc, message) => acc + wordCount(message.content),
-        0
-      )}`
     );
   });
 }

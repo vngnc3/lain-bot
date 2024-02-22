@@ -1,3 +1,5 @@
+// Basic openai setup with stream
+
 require('dotenv').config()
 const OpenAI = require('openai'); // Import OpenAI library
 

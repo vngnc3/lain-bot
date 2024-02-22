@@ -3,6 +3,7 @@ const https = require('https');
 const apiKey = process.env.TAVILY_KEY; // Use in production
 
 async function search(query) {
+    console.log(`[rag.js] Performing search using query: ${query}`)
     const baseUrl = 'https://api.tavily.com/';
     const endpoint = 'search';
 
