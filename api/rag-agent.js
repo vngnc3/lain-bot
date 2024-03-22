@@ -1,10 +1,11 @@
+// rag-agent: Use GPT-4 turbo to optimize user message into a search query
+
 const OpenAI = require("openai");
-const rag = require("../api/rag.js");
 
 // Use GPT-4 for best result
 const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY });
 
-const instruction = `Your task is to rewrite the user message into the most direct and most concise query to a search engine. Your objective is to understand the user's intent and rewrite it into the perfect query for use in a search engine. Never add notes, opinion, or any other information that the user did not provide you in the first place.`;
+const instruction = `You are tasked with rewriting the user message into a search query. Understand the user's intent and reflect it into your generated query. Be concise and short, your response will be used as the search query.`;
 
 let messageHistory = [
   {
@@ -23,11 +24,11 @@ let messageHistory = [
   },
   {
     role: "user",
-    content: "how is the bitcoin price movement today?",
+    content: "how is the bitcoin price today?",
   },
   {
     role: "assistant",
-    content: "bitcoin price analysis today",
+    content: "bitcoin price analysis today with date",
   },
   {
     role: "user",
@@ -59,7 +60,7 @@ let messageHistory = [
   },
   {
     role: "assistant",
-    content: "history colosseum rome italy",
+    content: "history of colosseum rome italy",
   },
   {
     role: "user",
@@ -67,7 +68,7 @@ let messageHistory = [
   },
   {
     role: "assistant",
-    content: "latest news russia ukraine conflict",
+    content: "latest news from russia ukraine conflict",
   },
 ];
 

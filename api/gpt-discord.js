@@ -20,7 +20,7 @@ const openaiConfig = {
   model: "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
   // messages added with every user interaction or new assistant response
   temperature: 0.79, // Raise the temperature a bit for variety in response
-  presence_penalty: 0.99,
+  presence_penalty: 0.5,
   stream: true,
 };
 
@@ -52,7 +52,10 @@ function manageMessageHistoryAndTokens(newMessage) {
   let totalTokens;
 
   function updateTokens() {
-    totalChars = messageHistory.reduce((acc, message) => acc + message.content.length, 0);
+    totalChars = messageHistory.reduce(
+      (acc, message) => acc + message.content.length,
+      0,
+    );
     totalTokens = approximateTokens(totalChars);
   }
 
@@ -61,25 +64,40 @@ function manageMessageHistoryAndTokens(newMessage) {
   const bufferTokens = 500; // Buffer for model's response
   const maxTokensWithBuffer = contextWindow - bufferTokens;
 
-  while (totalTokens > maxTokensWithBuffer && messageHistory.length > chatInjection.length) {
-    console.log('[gpt-discord.js] Attempting to remove oldest message.');
+  while (
+    totalTokens > maxTokensWithBuffer &&
+    messageHistory.length > chatInjection.length
+  ) {
+    console.log("[gpt-discord.js] Attempting to remove oldest message.");
     // Remove the oldest message after chatInjection messages
     let removedMessage = messageHistory.splice(chatInjection.length, 1);
     // console.log(`Removed message: ${removedMessage[0].content}`); // Verbose message removal
-    console.log('[gpt-discord.js] 1 message removed.');
+    console.log("[gpt-discord.js] 1 message removed.");
     updateTokens(); // Recalculate total tokens
 
     // Safety check - break out of the loop if no messages are being removed
-    if (totalTokens === approximateTokens(messageHistory.reduce((acc, message) => acc + message.content.length, 0))) {
+    if (
+      totalTokens ===
+      approximateTokens(
+        messageHistory.reduce(
+          (acc, message) => acc + message.content.length,
+          0,
+        ),
+      )
+    ) {
       // console.error('Error: Unable to reduce token count. Exiting loop.');
       break;
     }
   }
 
   if (totalTokens <= maxTokensWithBuffer) {
-    console.log(`[gpt-discord.js] OK: Total tokens ${Number(totalTokens)}/${Number(contextWindow)}.`);
+    console.log(
+      `[gpt-discord.js] OK: Total tokens ${Number(totalTokens)}/${Number(contextWindow)}.`,
+    );
   } else {
-    console.error(`[gpt-discord.js] Error: messageHistory exceeds context window (${totalTokens} tokens).`);
+    console.error(
+      `[gpt-discord.js] Error: messageHistory exceeds context window (${totalTokens} tokens).`,
+    );
   }
 }
 
@@ -99,7 +117,9 @@ function resetAfterInactivity() {
 
   // Set a new timer
   inactivityTimer = setTimeout(() => {
-    console.log('[gpt-discord.js] Inactivity limit reached. Resetting message history.');
+    console.log(
+      "[gpt-discord.js] Inactivity limit reached. Resetting message history.",
+    );
     resetMessageHistory();
   }, inactivityLimitMs);
 }
@@ -166,7 +186,7 @@ async function main(prompt, onData, resetHistory = false) {
 
     // Log at the end of cycle
     console.log(
-      `[gpt-discord.js] Messages in context : ${messageHistory.length}`
+      `[gpt-discord.js] Messages in context : ${messageHistory.length}`,
     );
   });
 }
