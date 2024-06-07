@@ -2,8 +2,8 @@ require("dotenv").config();
 
 const OpenAI = require("openai");
 const openai = new OpenAI({
-  baseURL: "https://api.together.xyz/v1",
-  apiKey: process.env.TOGETHER_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_KEY,
 });
 const joshpanmode = false; // respond in all lowercase
 const stopcharacter = "▵"; // used to signal end of stream to mention.js
@@ -17,7 +17,7 @@ let messageHistory = [...chatInjection];
 
 // Configure model
 const openaiConfig = {
-  model: "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+  model: "nousresearch/nous-hermes-yi-34b",
   // messages added with every user interaction or new assistant response
   temperature: 0.79, // Raise the temperature a bit for variety in response
   presence_penalty: 0.99,
